@@ -136,6 +136,7 @@ impl InputServices {
             shared.receiver_access.clone(),
             shared.device_io.clone(),
             sender,
+            shared.show_shell_command_console,
         ) {
             Ok(runtime) => runtime,
             Err(e) => {

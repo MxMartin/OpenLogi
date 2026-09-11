@@ -421,6 +421,7 @@ mod tests {
             capture_rearm_generation: Arc::new(0.into()),
             receiver_access: ReceiverAccess::default(),
             host_switch_links,
+            show_shell_command_console: false,
         }
     }
 

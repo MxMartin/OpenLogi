@@ -153,7 +153,7 @@ fn main() {
     let between = Duration::from_millis(between_ms);
     for (i, action) in actions.iter().enumerate() {
         println!("  → {}", action.label());
-        openlogi_inject::execute(action);
+        openlogi_inject::execute(action, false);
         if i + 1 < actions.len() {
             std::thread::sleep(between);
         }

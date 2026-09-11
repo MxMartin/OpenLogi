@@ -206,7 +206,14 @@ fn held_keys(combo: &KeyCombo) -> Vec<HeldKey> {
 /// it would need to intercept the OS event queue. Smoke-test it manually:
 /// bind a button to any action in the GUI and confirm the expected system event
 /// fires when the button is pressed (or use the `inject_action` example).
-pub fn execute(action: &Action) {
+///
+/// `show_shell_command_console` mirrors
+/// [`openlogi_core::config::AppSettings::show_shell_command_console`] and
+/// only affects a Windows [`Action::RunShellCommand`] / workflow
+/// `RunShellCommand` step: `false` (the default) runs it with no visible
+/// console window, `true` keeps its native console on screen for the
+/// duration of the run. Every other action and platform ignores it.
+pub fn execute(action: &Action, show_shell_command_console: bool) {
     if let Action::OpenApplication(target) = action {
         let expanded = shellexpand::tilde(target.path());
         if let Err(error) = opener::open(expanded.as_ref()) {
@@ -227,7 +234,7 @@ pub fn execute(action: &Action) {
             linux::execute(action);
         }
         target_os = "windows" => {
-            windows::execute(action);
+            windows::execute(action, show_shell_command_console);
         }
         _ => {
             tracing::warn!(

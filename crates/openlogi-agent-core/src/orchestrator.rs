@@ -108,6 +108,10 @@ pub struct SharedRuntime {
     pub receiver_access: ReceiverAccess,
     /// Keyboard → pointing-device routes resolved from `config.toml`.
     pub host_switch_links: HostSwitchLinks,
+    /// Mirrors [`openlogi_core::config::AppSettings::show_shell_command_console`]
+    /// at the time the agent started; a config change takes effect on the next
+    /// restart, like [`openlogi_core::config::AppSettings::capture_mouse_events`].
+    pub show_shell_command_console: bool,
 }
 
 impl SharedRuntime {
@@ -232,6 +236,7 @@ impl Orchestrator {
             capture_rearm_generation: Arc::new(AtomicU64::new(0)),
             receiver_access: ReceiverAccess::default(),
             host_switch_links,
+            show_shell_command_console: config.app_settings.show_shell_command_console,
         };
         let orch = Self {
             config,

@@ -8,6 +8,9 @@ check_for_updates = false
 auto_install_updates = false
 show_in_menu_bar = true
 capture_mouse_events = true
+# Windows only: true keeps a RunShellCommand binding's native console window
+# visible while it runs; false (default) hides it.
+show_shell_command_console = false
 smooth_scroll = false
 vertical_scroll_sensitivity = 14
 auto_download_assets = true

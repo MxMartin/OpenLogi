@@ -55,7 +55,7 @@ const XBUTTON2: i32 = 2;
 /// synthesise events via `SendInput`. macOS window-manager actions map to
 /// their Windows equivalents; `CustomShortcut` maps macOS `kVK_*` codes to
 /// Windows virtual-key codes (Cmd → Ctrl).
-pub(super) fn execute(action: &Action) {
+pub(super) fn execute(action: &Action, show_shell_command_console: bool) {
     match action.effect() {
         Effect::None => {}
         Effect::Click(button) => post_click(button),
@@ -64,7 +64,7 @@ pub(super) fn execute(action: &Action) {
         Effect::Scroll { dx, dy } => dispatch_scroll(dx, dy),
         Effect::Media(key) => dispatch_media(key),
         Effect::Native(native) => dispatch_native(native),
-        Effect::Script(script) => dispatch_script(script),
+        Effect::Script(script) => dispatch_script(script, show_shell_command_console),
         Effect::Text(text) => {
             tracing::warn!(
                 chars = text.chars().count(),
@@ -162,25 +162,27 @@ fn dispatch_media(key: MediaKey) {
     }
 }
 
-fn dispatch_script(script: Script<'_>) {
+fn dispatch_script(script: Script<'_>, show_shell_command_console: bool) {
     match script {
         Script::AppleScript(_) => {
             tracing::warn!("RunAppleScript is only supported on macOS");
         }
-        Script::ShellCommand(cmd) => run_shell_command_async(cmd.to_string()),
-        Script::Workflow(steps) => run_workflow_async(steps.to_vec()),
+        Script::ShellCommand(cmd) => {
+            run_shell_command_async(cmd.to_string(), show_shell_command_console);
+        }
+        Script::Workflow(steps) => run_workflow_async(steps.to_vec(), show_shell_command_console),
     }
 }
 
-fn run_shell_command_async(cmd: String) {
-    std::thread::spawn(move || run_shell_command(&cmd));
+fn run_shell_command_async(cmd: String, show_console: bool) {
+    std::thread::spawn(move || run_shell_command(&cmd, show_console));
 }
 
-fn run_workflow_async(steps: Vec<WorkflowStep>) {
-    std::thread::spawn(move || run_workflow(&steps));
+fn run_workflow_async(steps: Vec<WorkflowStep>, show_shell_command_console: bool) {
+    std::thread::spawn(move || run_workflow(&steps, show_shell_command_console));
 }
 
-fn run_workflow(steps: &[WorkflowStep]) {
+fn run_workflow(steps: &[WorkflowStep], show_shell_command_console: bool) {
     for step in steps {
         match step {
             WorkflowStep::TypeText(text) => {
@@ -196,19 +198,26 @@ fn run_workflow(steps: &[WorkflowStep]) {
             WorkflowStep::RunAppleScript(_) => {
                 tracing::warn!("workflow RunAppleScript is only supported on macOS");
             }
-            WorkflowStep::RunShellCommand(cmd) => run_shell_command(cmd),
+            WorkflowStep::RunShellCommand(cmd) => {
+                run_shell_command(cmd, show_shell_command_console);
+            }
         }
     }
 }
 
-fn run_shell_command(cmd: &str) {
-    // Without this flag `cmd.exe` allocates and briefly flashes a visible
-    // console window, since the agent itself is a console-less GUI/background
-    // process and the child would otherwise get one of its own.
-    let _ = std::process::Command::new("cmd")
-        .args(["/C", cmd])
-        .creation_flags(CREATE_NO_WINDOW)
-        .output();
+/// Run `cmd` through `cmd /C`. Without `CREATE_NO_WINDOW`, `cmd.exe`
+/// allocates and briefly flashes a visible console window, since the agent
+/// itself is a console-less GUI/background process and the child would
+/// otherwise get one of its own. `show_console` opts back into that native
+/// window (e.g. to watch a command's output interactively); the flag has no
+/// effect on what the command does, only on whether its console is shown.
+fn run_shell_command(cmd: &str, show_console: bool) {
+    let mut command = std::process::Command::new("cmd");
+    command.args(["/C", cmd]);
+    if !show_console {
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    let _ = command.output();
 }
 
 fn post_click(button: MouseButton) {

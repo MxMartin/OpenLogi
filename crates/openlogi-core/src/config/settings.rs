@@ -195,6 +195,14 @@ pub struct AppSettings {
     /// Takes effect on agent restart.
     #[serde(default = "default_true")]
     pub capture_mouse_events: bool,
+    /// Whether a `RunShellCommand` binding shows its console window while it
+    /// runs. `false` (default) hides it: on Windows the command executes with
+    /// `CREATE_NO_WINDOW`, so no window ever appears. `true` keeps a command's
+    /// native console visible for the duration of the run — useful when
+    /// diagnosing a command interactively. macOS and Linux processes launched
+    /// this way have no console to begin with, so the setting is a no-op there.
+    #[serde(default)]
+    pub show_shell_command_console: bool,
     /// Whether ordinary mouse-wheel input is replaced with a finite smooth
     /// scroll animation. **Off by default**: while enabled the OS hook
     /// suppresses eligible physical wheel events only after its non-blocking
@@ -458,6 +466,7 @@ impl Default for AppSettings {
             update_prompt_seen: false,
             show_in_menu_bar: true,
             capture_mouse_events: true,
+            show_shell_command_console: false,
             smooth_scroll: false,
             vertical_scroll_sensitivity: VerticalScrollSensitivity::DEFAULT,
             auto_download_assets: true,

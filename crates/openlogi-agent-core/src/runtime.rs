@@ -64,6 +64,11 @@ struct ActionExecutor {
     receiver_access: ReceiverAccess,
     device_io: DeviceIoGate,
     action_ring: tokio::sync::mpsc::UnboundedSender<Option<String>>,
+    /// Mirrors [`openlogi_core::config::AppSettings::show_shell_command_console`];
+    /// read once at startup like
+    /// [`openlogi_core::config::AppSettings::capture_mouse_events`] — a config
+    /// change to this setting takes effect on the next agent restart.
+    show_shell_command_console: bool,
 }
 
 impl ActionExecutor {
@@ -120,14 +125,14 @@ impl ActionExecutor {
             // action so the browser navigates only once.
             Action::BrowserBack | Action::BrowserForward => {
                 if browser_nav_debounce_ok(action) {
-                    openlogi_inject::execute(action);
+                    openlogi_inject::execute(action, self.show_shell_command_console);
                 } else {
                     info!(action = %action.label(), "browser nav debounced — duplicate dispatch path suppressed");
                 }
                 None
             }
             other => {
-                openlogi_inject::execute(other);
+                openlogi_inject::execute(other, self.show_shell_command_console);
                 None
             }
         };
@@ -222,6 +227,7 @@ impl ActionRuntime {
         receiver_access: ReceiverAccess,
         device_io: DeviceIoGate,
         action_ring: tokio::sync::mpsc::UnboundedSender<Option<String>>,
+        show_shell_command_console: bool,
     ) -> io::Result<Self> {
         let executor = ActionExecutor {
             dpi_cycle,
@@ -230,6 +236,7 @@ impl ActionRuntime {
             receiver_access,
             device_io,
             action_ring,
+            show_shell_command_console,
         };
         let mut button_handler = ButtonEventHandler::new(executor.clone());
         let buttons = ButtonRuntimeOwner::spawn(move |event| button_handler.handle(event))?;
